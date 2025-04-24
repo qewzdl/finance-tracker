@@ -1,79 +1,209 @@
 /*
-=========
-VARIABLES
-=========
+================
+GLOBAL VARIABLES
+================
 */
 
-// Public
+// Settings
 let maxDecimals = 2;
 
-// Private
-let totalMoney = 0;
-let difference = 0;
-let differencePercent = 0;
+/*
+=======
+CLASSES
+=======
+*/
 
-// Elements
-const amountInputElement = document.getElementById('amountInput');
-const walletAmountElement = document.getElementById('walletAmount');
-const differencePercentElement = document.getElementById('differencePercent');
+// Default
+class Account {
+    static instances = [];
 
-const earnBtnElement = document.getElementById('earnBtn');
-const spendBtnElement = document.getElementById('spendBtn');
-const setBtnElement = document.getElementById('setBtn');
+    constructor(name) {
+        this.name = name;
+        this.balance = 0;
+        this.differencePercent = 0;
+
+        Account.instances.push(this);
+    }
+}
+
+// Managers & Singletones
+class AccountManager {
+    constructor(account) {
+        if (AccountManager.instance) {
+            return AccountManager.instance;
+        }
+
+        this.currentAccount = account;
+
+        AccountManager.instance = this;
+    }
+}
 
 /*
-=========
-LISTENERS
-=========
+===================
+DOM CONTENT LOADING
+===================
 */
-amountInputElement.addEventListener("input", () => {
-    amountInputElement.value = amountInputElement.value.replace(/[^0-9]/g, '');
-});
+document.addEventListener("DOMContentLoaded", () => {
+    /*
+    ===============
+    CLASS INSTANCES
+    ===============
+    */
+    let account1 = new Account("Card");
+    let account2 = new Account("Wallet");
+    let account3 = new Account("Crypto");
 
-earnBtnElement.addEventListener("click", () => operateMoney('+', amountInputElement.value));
-spendBtnElement.addEventListener("click", () => operateMoney('-', amountInputElement.value));
-setBtnElement.addEventListener("click", () => setMoney(amountInputElement.value));
+    accountManager = new AccountManager(account1);
 
-/*
-=========
-FUNCTIONS
-=========
-*/
-function operateMoney(operator, value) {
-    if (amountInputElement.value.length === 0) return 0;
+    /*
+    ============
+    DOM ELEMENTS
+    ============
+    */
+    const amountInputElement = document.getElementById('amountInput');
+    const earnBtnElement = document.getElementById('earnBtn');
+    const spendBtnElement = document.getElementById('spendBtn');
+    const setBtnElement = document.getElementById('setBtn');
 
-    let previousTotalMoney = totalMoney;
+    const accountsDropdownElement = document.getElementById('accountsDropdown');
 
-    switch (operator) {
-        case '+':
-            totalMoney += parseInt(value);
-            break;
+    const balanceElements = document.getElementsByClassName('balance');
+    const differencePercentElements = document.getElementsByClassName('difference-percent');
+    const accountNameElements = document.getElementsByClassName('account-name');
+
+    const newAccountNameInputElement = document.getElementById('newAccountNameInput');
+    const createAccountBtn = document.getElementById('createAccountBtn');
+
+    /*
+    ===============
+    EVENT LISTENERS
+    ===============
+    */
+    amountInputElement.addEventListener("input", () => {
+        amountInputElement.value = amountInputElement.value.replace(/[^0-9]/g, '');
+    });
+
+    createAccountBtn.addEventListener("click", () => {
+        if (newAccountNameInputElement.value.length === 0) return;
+
+        createAccount(newAccountNameInputElement.value)
+
+        updateInterface();
+    });
+
+    earnBtnElement.addEventListener("click", () => operateBalance('+', amountInputElement.value));
+    spendBtnElement.addEventListener("click", () => operateBalance('-', amountInputElement.value));
+    setBtnElement.addEventListener("click", () => setBalance(amountInputElement.value));
+    accountsDropdownElement.addEventListener("change", () => changeAccountByName(accountsDropdownElement.value));
+
+    /*
+    =====
+    START
+    =====
+    */
+    updateInterface();
+    
+    /*
+    =========
+    FUNCTIONS
+    =========
+    */
+    function modifyBalance(newBalanceCallback) {
+        if (amountInputElement.value.length === 0) return;
         
-        case  '-':
-            totalMoney -= parseInt(value);
-            break;
+        let previousBalance = accountManager.currentAccount.balance;
+
+        newBalanceCallback();
+
+        handleDifferencePercent(accountManager.currentAccount.balance, previousBalance);
+        updateInterface();
     }
 
-    handleDifferencePercent(totalMoney, previousTotalMoney);
-    updateInterface();
-}
+    function operateBalance(operator, value) {
+        modifyBalance(() => {
+            switch (operator) {
+                case '+':
+                    accountManager.currentAccount.balance += parseInt(value);
+                    break;
+                
+                case  '-':
+                    accountManager.currentAccount.balance -= parseInt(value);
+                    break;
+            }
+        });
+    }
 
-function handleDifferencePercent(part, value) {
-    differencePercent = (((part - value) / value) * 100).toFixed(maxDecimals);
-}
+    function setBalance(value) {
+        modifyBalance(() => {
+            accountManager.currentAccount.balance = parseInt(value);
+        });
+    }
 
-function updateInterface() {
-    if (differencePercent > 0) {
-        differencePercentElement.innerHTML = '+' + differencePercent + '%';
-    } else {
-        differencePercentElement.innerHTML = differencePercent + '%';
-    } 
+    function handleDifferencePercent(part, value) {
+        accountManager.currentAccount.differencePercent = (((part - value) / value) * 100).toFixed(maxDecimals);
+    }
 
-    walletAmountElement.innerHTML = totalMoney;
-}
+    function createAccount(name) {
+        for (i = 0; i < Account.instances.length; i++) {
+            if (Account.instances[i].name === name) {
+                alert("Account name is duplicated!");
+            }
+        }
 
-function setMoney(value) {
-    totalMoney = value;
+        let account = new Account(name);
+    }
 
-    updateInterface();
-}
+    function changeAccount(newAccount) {
+        accountManager.currentAccount = newAccount;
+    }
+
+    function changeAccountByName(newAccountName) {
+        for (i = 0; i < Account.instances.length; i++) {
+            if (Account.instances[i].name === newAccountName) {
+                changeAccount(Account.instances[i]);
+            }
+        }
+        updateInterface();
+    }
+
+    // UI Update
+    function updateInterface() {
+        updateBalanceElements();
+        updateDifferencePercentElements();
+        updateAccountNameElements();
+        updateAccountsDropdownElement();
+    }
+
+    function updateBalanceElements() {
+        for (i = 0; i < balanceElements.length; i++) {
+            balanceElements[i].innerHTML = accountManager.currentAccount.balance;
+        }
+    }
+
+    function updateDifferencePercentElements() {
+        for (i = 0; i < differencePercentElements.length; i++) {
+            differencePercentElements[i].innerHTML = `${accountManager.currentAccount.differencePercent > 0 ? '+' : ''}${accountManager.currentAccount.differencePercent}%`;
+        }
+    }
+
+    function updateAccountNameElements() {
+        for (i = 0; i < accountNameElements.length; i++) {
+            if (accountNameElements[i].tagName[0] === 'H') {
+                accountNameElements[i].innerHTML = accountManager.currentAccount.name;
+            } else {
+                accountNameElements[i].innerHTML = accountManager.currentAccount.name.toLowerCase();
+            }
+        }
+    }
+
+    function updateAccountsDropdownElement() {
+        accountsDropdownElement.innerHTML = '';
+
+        for (i = 0; i < Account.instances.length; i++) {
+            accountsDropdownElement.innerHTML += `<option value="${Account.instances[i].name}">${Account.instances[i].name}</option>`;
+        }
+
+        accountsDropdownElement.value = accountManager.currentAccount.name;
+    }
+});  

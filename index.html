@@ -6,14 +6,25 @@
     <title>Finance Tracker</title>
 </head>
 <body>
+    <h1 id="websiteTitle">Finance Tracker</h1>
+
+    <hr>
+
+    <h2>Create new account</h2>
+    <input id="newAccountNameInput">
+    <button id="createAccountBtn">Create</button>
+    <hr>
+
+    <select name="account" id="accountsDropdown"></select>
+    <h2 class="account-name">Account Name</h2>
     <input id="amountInput">
     <div>
         <button id="earnBtn">Earn</button>
         <button id="spendBtn">Spend</button>
         <button id="setBtn">Set</button>
     </div>
-    <p>Your wallet: <span id="walletAmount">0</span>$</p>
-    <p><span id="differencePercent">0%</span></p>
+    <p>Your balance: <span class="balance">0</span>$</p>
+    <p><span class="difference-percent">0%</span></p>
 
     <script src="./script.js"></script>
 </body>
